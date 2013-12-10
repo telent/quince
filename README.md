@@ -19,7 +19,7 @@ stuff like `$BROWSER` environment variables or similar.
 
 It uses Midje for tests.  To test the MIME parsing it downloads some
 messages from a mailing list archive on the internet: because I do not
-know the copyright status of those messages they are not distributed
+know the copyright status of those messages, they are not distributed
 with the package.  So, before running tests you need to
 
 $ make -C fixtures
