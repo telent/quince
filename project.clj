@@ -16,4 +16,9 @@
 
   :profiles {:dev {:dependencies [[midje "1.5.0"]]}}
 
-  :dependencies [[org.clojure/clojure "1.5.1"]])
+  :dependencies [[org.clojure/clojure "1.5.1"]
+
+                 [org.apache.james/apache-mime4j-core "0.7.2"]
+                 [org.apache.james/apache-mime4j-dom "0.7.2"]
+                 [org.apache.james/apache-mime4j-storage "0.7.2"]
+                 ])
