@@ -1,6 +1,6 @@
 nnml: mbox.gz
 	mkdir tmp-$@ 
-	gzcat $< | (cd tmp-$@ && awk 'BEGIN {out="0.msg" } /From / {close(out); out=NR".M0"} {print > out }')
+	gunzip -f < $< | (cd tmp-$@ && awk 'BEGIN {out="0.msg" } /From / {close(out); out=NR".M0"} {print > out }')
 	mv tmp-$@ $@
 
 mbox.gz: 
