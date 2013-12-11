@@ -1,0 +1,263 @@
+Fri Oct 25 22:55:02 2013
+
+* the purpose of triage is to get stuff into channels
+
+Not necessarily to deal with it now.  If something needs dealing with
+now, we are transitioning out of triage and into processing the 'Action'
+channel
+
+
+** For a single message (e.g. "please do X" or "you might like X") 
+
+show sender and preview, put channel assignment buttons somewhere
+obvious.  
+
+** For a whole new conversation
+
+show participants and some kind of summary
+
+** For a new message in an ongoing conversation
+*** if there is a channel already 
+
+the new message should be sent there, but we may want to be told that
+has happened.  Possibly this is more important for some channels
+than others, but even if I don't usually want to know that 'clojure'
+or 'linuxjobs' has updated with random messages I might still want to
+exceptionally if the message was from my boss and miscategorized.
+Think about that.
+
+*** if there is no channel
+
+treat as new conversation but focus on the new message not the first mesage
+
+If we are doing a very quick check on the inbox, we may want an index
+page for each thread showing names/dates/subjects.  Once we start
+processing, do we need to show the next thread/threads to be looked
+at along with the one currently in consideration?  It might be nice
+to see how much triage is still needed to get to I0.  It might be
+neat for 'background mental processing' too.  Also if we show the
+previous one or two threads that have been assigned, we can show the
+channel they went to, which means the user has feedback they pressed
+the right key/clicked the right button.
+
+Whether we start with an index or start with a preview pane is an open
+issue. Maybe the index and then scroll the preview in for the first
+thread after a delay if the user doesn't leap to another thread or
+start interacting in some other way
+
+Fri Oct 25 23:11:53 2013
+
+A conversation (a.k.a. a thread) is a collection of messages.  We can
+define some functions to extract conversations from the morass and
+then to return summaries of what's in them
+
+There are some attributes of a conversation that are not functions of
+its constituent messages: tags and channels and other user actions
+associated with it.
+
+(aside: is a channel really anything other than a promoted tag?  we
+hav the principle that a message have at most one channel, can't think
+of anything else)
+
+Thu Oct 31 00:20:46 2013
+
+Working on threads, implemented some stuff to extract References and
+In-Reply-To headers.  A couple of things come to mind
+
+* we are taking the union of all values in all those headers and
+  storing it as :parents.  Which is useful to us but is an odd thing
+  for the mime parser to be doing as that is not a mime concept
+
+* although we may want to special-case this header anyway for speed of
+  thread retrieval, this does lead us to consider that it would be
+  worth saving *all* the headers in some reasonably OK form so that
+  other filters as yet unheard of can operate on header fields without
+  rescanning the whole message
+
+* we only tested on a message with a single reference, we may yet need
+  to split on whitespace YES FIX THIS
+
+Fri Nov  1 13:41:02 2013
+
+(winnow.thread/parents {} message-id) => map of id=>message for all
+parents of the message with that id.  Not sure how (or whether!) we
+should also look for descendants, let's wait and see when we need to.
+
+Note that our ordering of messages within the thread is busted
+
+to drive the UI we really want to be able to ask
+- if any message in a thread is untriaged
+- if any message in a thread *has* been triaged
+
+as these decisions will decide (a) if we need to show the thread at
+all; (b) what the default channel should be.
+
+To do this we want some way of storing the channel assignments.
+
+Sat Nov  2 22:48:42 2013
+
+... which we did last night.
+
+We need some kind of protocol for the functions that recommend channels
+for the messages to go into.  I'm sort of thinking along the lines
+that each function will return a [channel, probability] pair, and then
+there will be a policy layer that knows which functions to rate most
+highly.  Channel determinants might include
+
+- disposition of previous messages in thread
+- message author/recipients seen most often in channel x
+- magic text in header/footer/subject
+- tags
+- body text
+
+There is an overlap between tags and channels, whcih may be best
+resolved by saying that any channel determinant which relies only on
+the message viewed in isolation, and not on patterns observed over
+multiple messages, should actually be a tag.
+
+Mon Nov  4 23:36:22 2013
+
+We could use a moderately efficient way to find all messages that are
+*not* disposed of in any way.  In the disposition index this would be
+all the keys whose second element is 0 and are followed by another key
+with second element 0 (or which are not followed by anything at all)
+  
+Tue Nov  5 22:52:45 2013
+
+so we want a reduce function that counts the number of documents of type
+'action', then we can query it with group_level=1 to get an array of 
+[id] => number_of_actions
+
+(but note: 'A common mistake new CouchDB users make is attempting to
+construct complex aggregate values with a reduce function. Full
+reductions should result in a scalar value, like 5, and not, for
+instance, a JSON hash with a set of unique keys and the count of
+each. The problem with this approach is that you’ll end up with a very
+large final value. ' so maybe we don't want that really)
+
+We *could* sidestep this a bit by writing an action document for each
+message when the message is inserted, that has null as the
+channel. This does open a broader question, actually: how do we
+efficiently search for 'all documents currently in channel foo'?
+
+Fri Nov  8 13:43:52 2013
+
+Still hung up on this 'view by channel' thing
+
+1) If we have a view in which the keys are
+
+[channel, doc1 ] 
+[channel, doc2 ] 
+[channel, doc3 ] 
+...
+
+then we can query it with startkey and endkey to find all the docs
+that have ever been in that channel.  But if there are multiple rows
+per document because the channel has changed, we can't reduce the view
+to dedupe them because there's no way to group on the second element only
+
+Conversely,
+
+2) If we have a view where the first key element is document id, we can 
+remove old channel assignments easy enough in the reduce
+
+[doc, channel, date] => a1
+[doc, channel1, date1] => a2
+[doc, channel2, date2] => a3
+[doc, channel3, date3] => a4
+
+reduce_level=1 and take the max date gives us 
+
+[doc, a4]
+
+but we can't use startkey/endkey to query this, and we can't build
+views on views
+
+afaik there is no way to change the keys of the documents that a view with a reduce in it generates, 
+
+I think where we're ending up here is that 
+
+* there is no way for document B to control whether or not document A
+should be emitted by a map function
+
+* the key in a view with group_level=n is set by the query: the reduce function
+only has control of the value
+
+* couchdb frowns on accumulating a list of document ids in a reduce,
+  because the higher nodes in the b-tree end up gettign stuffed with
+  all the ids from al their children.  A reduce function should reduce
+
+
+Fri Nov  8 16:17:29 2013
+
+What if we go back to option 1 and add a date
+
+[channel, doc1, date1 ] 
+[channel3, doc1, date3 ] 
+[channel2, doc2, date2 ] 
+...
+
+and then on the client side we read the array into a map, and replace
+earlier entries with later ones
+
+Sun Nov 10 21:33:02 2013
+
+Might have figured this out ... add 'previous channel' to the 'action'
+message, then we can write
+
+['inbox', doc1, enter, datez ] 
+['inbox', doc1, exit, date0 ] 
+[channel, doc1, enter, date1 ] 
+[channel, doc1, exit, date2 ] 
+[channel, doc2, enter, date3 ]
+[channel2, doc1, enter, date4 ]
+
+then we can group by channel, and use a reducer that accumulates docs
+for which we have seen an 'enter' event then removes them again when
+we see an 'exit'
+
+Mon Nov 18 13:45:26 2013
+
+Additionally I am going to add that a channel name may not start with '-', 
+because we can reserve that character in searches to mean "not this channel'.
+
+Tue Nov 19 23:50:24 2013
+
+It must be said that writing mapreduce in couchdb is incredibly
+frustrating: it's slow, the entire intent of the function obscured by
+js interop bolocks, and if you get it wrong there is no error
+reporting. And that's on top of the point that a single layer of
+mapreduce (no way to create a view of a view) is really not all that useful.
+
+I wonder if we'd really be losing much by rolling our own
+persist-to-disk layer.  Provided we retain a mechanism for indexing
+the data (could even be map-reducey, though hopefully less annoying
+than couch) we could use pr and *print-dup* to dump the tags into
+files with names matching the message-id, and at the same time add
+records to each view
+
+Sun Dec  1 22:47:09 2013
+
+I thought I'd designed a cheap and simple self-balancing binary tree,
+but it turns out my assumptions are incorrect.  Need to implement AVL
+trees, but it looks like I was quite close to doing that anyway ...
+
+Tue Dec 10 08:01:28 2013
+
+maildir : tagger
+btree : 
+channel: tagger thread
+core : mime tagger maildir ui
+mime :
+tagger:
+thread: store
+
+Wed Dec 11 22:56:23 2013
+
+Partly because we were having trouble gettng midje to run, and aprtly
+because now it is running we can make a much better fist of clean
+design (TDD and all that) I have started again with a new name and am
+copying files across as and when the situation calls for them
+
+We will have persistent btrees and use clojure.core.reducers to put
+stuff in them.
