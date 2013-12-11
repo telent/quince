@@ -10,5 +10,7 @@
 (facts "maildir-files-seq"
        (let [dir (System/getProperty "user.dir")
              s (maildir-files-seq (java.io.File. dir "fixtures/nnml/"))]
+         (fact "finds 56 messages"
+               (count s) => 56)
          (fact "returns regular files"
                s => (partial every? #(.isFile %)))))

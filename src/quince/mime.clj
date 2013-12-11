@@ -99,7 +99,7 @@
 
 (facts "about read-message"
        (let [dir (System/getProperty "user.dir")
-             msg (read-message (java.io.File. dir "fixtures/nnml/1.msg"))]
+             msg (read-message (java.io.File. dir "fixtures/nnml/1.M0"))]
          (:subject msg) => "Failing on load-foreign function"
          (:message-id msg) => "<4B41F76D.50106@gmail.com>"
          (:references msg) => #{"<9552de430912310205u72ef9c31o2dc5afbc16d6a234@mail.gmail.com>"
