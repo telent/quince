@@ -112,3 +112,21 @@
       (tree-insert-seq (reverse [1 2 3 4 5 6 7 8 9])) => balanced?
       (tree-insert-seq [1 7 2 6 8 3 2 3 57 8  2 457 4 6 5]) => balanced?
       )
+
+(defn tree-lookup [tree key]
+  (and tree
+       (condp = (Integer/signum (compare key (:key tree)))
+           0 (:value tree)
+           -1 (tree-lookup (:left tree) key)
+           1 (tree-lookup (:right tree) key))))
+
+(facts "tree-lookup"
+      (let [nodes (map #(list %1 %2) (range 1 20) (reverse (range 1 20)))
+            tree (reduce (fn [tree [k v]] (tree-insert tree k v)) nil nodes)]
+        (fact "finds the first value associated with the provided key"
+              (tree-lookup tree 5) => 15
+              (tree-lookup tree 1) => 19
+              (tree-lookup tree 9) => 11)
+        (fact "returns nil if not found"
+              (tree-lookup tree 44) => nil
+              )))
