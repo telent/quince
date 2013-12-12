@@ -254,7 +254,7 @@ thread: store
 
 Wed Dec 11 22:56:23 2013
 
-Partly because we were having trouble gettng midje to run, and aprtly
+Partly because we were having trouble gettng midje to run, and partly
 because now it is running we can make a much better fist of clean
 design (TDD and all that) I have started again with a new name and am
 copying files across as and when the situation calls for them
