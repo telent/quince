@@ -52,21 +52,23 @@
      ;; otherwise don't know how to rebalance
      true (assert nil))))
 
-(defn tree-insert [tree key value]
-  (let [tree
-        (cond (nil? tree)
-              {:left nil :right nil :key key :value value}
-              (<= key (:key tree))
-              (assoc tree :left (tree-insert (:left tree) key value))
-              (> key (:key tree))
-              (assoc tree :right (tree-insert (:right tree) key value))
-              )
-        imbal (imbalance tree)]
-    (if (< -2 imbal 2)
-      tree
-      (let [r (rebalance tree)]
-        (assert (< -2 (imbalance r) 2))
-        r))))
+(defn tree-insert
+  ([tree [key value]] (tree-insert tree key value))
+  ([tree key value]
+     (let [tree
+           (cond (nil? tree)
+                 {:left nil :right nil :key key :value value}
+                 (<= (compare key (:key tree)) 0)
+                 (assoc tree :left (tree-insert (:left tree) key value))
+                 (> (compare key (:key tree)) 0)
+                 (assoc tree :right (tree-insert (:right tree) key value))
+                 )
+           imbal (imbalance tree)]
+       (if (< -2 imbal 2)
+         tree
+         (let [r (rebalance tree)]
+           (assert (< -2 (imbalance r) 2))
+           r)))))
 
 (fact "the height of a tree is the max number of nodes between the root and any leaf"
       (let [tree (reduce (fn [tree key] (tree-insert tree key {}))
