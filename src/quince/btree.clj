@@ -111,8 +111,9 @@
          (imbalance {:left left :right right :key 0 :value :hello}))
        => -2)
 
-(defn tree-insert-seq [seq]
+(defn- tree-insert-seq [seq]
   (reduce (fn [tree key] (tree-insert tree key {})) empty-tree seq))
+
 (defn balanced? [tree] (< -2 (imbalance tree) 2))
 
 (fact "tree-insert never creates a tree with imbalance greater than 1"
@@ -143,3 +144,11 @@
         (fact "returns nil if not found"
               (tree-lookup tree 44) => nil
               )))
+
+(defn num-nodes-in [tree]
+  (if (empty-tree? tree)
+    0
+    (+ 1 (num-nodes-in (:left tree)) (num-nodes-in (:right tree)))))
+
+(fact "nodes-in counts the nodes"
+      (num-nodes-in (tree-insert-seq (range 0 10))) => 10)
