@@ -112,7 +112,8 @@
        => -2)
 
 (defn- tree-insert-seq [seq]
-  (reduce (fn [tree key] (tree-insert tree key {})) empty-tree seq))
+  (reduce (fn [tree key] (tree-insert tree key (- key)))
+          empty-tree seq))
 
 (defn balanced? [tree] (< -2 (imbalance tree) 2))
 
@@ -144,6 +145,32 @@
         (fact "returns nil if not found"
               (tree-lookup tree 44) => nil
               )))
+
+(defn tree-slice [tree start end]
+  (let [less? (fn [a b] (< (compare a b) 0))
+        k (:key tree)
+        combine (fn [some one some-more]
+                  #_[some one some-more]
+                  (concat some [one] some-more))]
+    (cond (empty-tree? tree)
+          []
+          (less? k start)
+          (tree-slice (:right tree) start end)
+          (not (less? k end))
+          (tree-slice (:left tree) start end)
+          true
+          (combine
+           (tree-slice (:left tree) start end)
+           (:value tree)
+           (tree-slice (:right tree) start end)))))
+
+(fact "tree-slice returns the values of all nodes between two keys"
+      (let [rnd (java.util.Random. 1000)
+            tree
+            (tree-insert-seq (take 25 (repeatedly #(.nextInt rnd 100))))]
+        (tree-slice tree 35 50))
+      => [-35 -36 -41 -41 -45 -46 -49])
+
 
 (defn num-nodes-in [tree]
   (if (empty-tree? tree)
