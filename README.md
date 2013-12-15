@@ -2,6 +2,13 @@
 
 QUINCE Is Not Cloud Email
 
+## Installation
+
+* make sure you're running Java 1.7 (or later, maybe, though no later
+  version exists at the time of writing)
+
+* use leiningen
+
 ## Usage
 
 Don't use it. It doesn't work
