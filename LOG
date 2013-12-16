@@ -261,3 +261,41 @@ copying files across as and when the situation calls for them
 
 We will have persistent btrees and use clojure.core.reducers to put
 stuff in them.
+
+Sun Dec 15 23:30:07 2013
+
+We have btrees, we can search them by key equality or by [start end].
+quince.core/read-messages returns a message-id index.  
+
+quince.core> (time (map :message-id (bt/tree-slice my-index "<4B" "<5")))
+"Elapsed time: 0.087133 msecs"
+
+has to be said this doesn't *feel* fast
+
+What's next?
+
+- other indices as needed
+  - some kinda documented entry point for users to add their own
+- how to record message disposition
+- how to decide message disposition
+- UI
+- do we need a message composer, or hand off to emacs?
+
+Mon Dec 16 23:12:33 2013
+
+message disposition
+
+1) create a log file.  write a record to it each time we assign a
+message channel
+
+2) periodically, to keep the log file size down, 
+
+- start a new log file, write log entries to old and new
+- in another thread, dump out a state of all the message channel assignments as of
+ the time that the dump started
+- once the state is successfully dumped, close (and optionally
+delete) the old log file
+
+3) read the state and the log file at startup, create a map of
+channel->[messages]
+
